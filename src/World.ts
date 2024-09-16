@@ -7,11 +7,11 @@ export class World {
   private scene: THREE.Scene;
   private chunks: Map<string, Chunk> = new Map();
   private placeholderBlock: THREE.LineSegments;
-  public blockMeshes: THREE.Mesh[] = []; // Add this line
+  public blockMeshes: THREE.Mesh[] = [];
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    this.placeholderBlock = new THREE.LineSegments(); // Initialize here
+    this.placeholderBlock = new THREE.LineSegments();
     this.generateTerrain();
     this.createPlaceholderBlock();
   }
@@ -51,6 +51,8 @@ export class World {
 
   private renderChunk(chunkX: number, chunkZ: number, chunk: Chunk) {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const edgesGeometry = new THREE.EdgesGeometry(geometry);
+    const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
 
     for (let x = 0; x < CHUNK_SIZE.WIDTH; x++) {
       for (let z = 0; z < CHUNK_SIZE.DEPTH; z++) {
@@ -64,8 +66,13 @@ export class World {
               y,
               chunkZ * CHUNK_SIZE.DEPTH + z
             );
+            
+            // Add edges to the cube
+            const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+            cube.add(edges);
+
             this.scene.add(cube);
-            this.blockMeshes.push(cube); // Add this line
+            this.blockMeshes.push(cube);
           }
         }
       }
@@ -81,14 +88,71 @@ export class World {
     this.scene.add(this.placeholderBlock);
   }
 
-  updatePlaceholderBlock(targetBlock: { position: THREE.Vector3, normal: THREE.Vector3 } | null) {
-    if (targetBlock) {
-      const { position, normal } = targetBlock;
-      const placeholderPosition = position.clone().add(normal).add(new THREE.Vector3(0.5, 0.5, 0.5));
-      this.placeholderBlock.position.copy(placeholderPosition);
+  updatePlaceholderBlock(targetBlock: { position: THREE.Vector3, placementPosition: THREE.Vector3 } | null) {
+    if (targetBlock && this.isValidPlacement(targetBlock.placementPosition)) {
+      this.placeholderBlock.position.copy(targetBlock.placementPosition);
       this.placeholderBlock.visible = true;
     } else {
       this.placeholderBlock.visible = false;
     }
+  }
+
+  placeBlock(position: THREE.Vector3, blockType: BlockType) {
+    if (!this.isValidPlacement(position)) return;
+
+    const chunkX = Math.floor(position.x / CHUNK_SIZE.WIDTH);
+    const chunkZ = Math.floor(position.z / CHUNK_SIZE.DEPTH);
+    const chunkKey = `${chunkX},${chunkZ}`;
+
+    let chunk = this.chunks.get(chunkKey);
+    if (!chunk) {
+      chunk = this.generateChunk(chunkX, chunkZ);
+      this.chunks.set(chunkKey, chunk);
+    }
+
+    const localX = Math.floor(position.x) % CHUNK_SIZE.WIDTH;
+    const localY = Math.floor(position.y);
+    const localZ = Math.floor(position.z) % CHUNK_SIZE.DEPTH;
+
+    chunk[localX][localZ][localY] = blockType;
+    this.renderSingleBlock(chunkX, chunkZ, localX, localY, localZ, blockType);
+  }
+
+  private renderSingleBlock(chunkX: number, chunkZ: number, x: number, y: number, z: number, blockType: BlockType) {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({ color: BLOCK_COLORS[blockType] });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(
+      chunkX * CHUNK_SIZE.WIDTH + x,
+      y,
+      chunkZ * CHUNK_SIZE.DEPTH + z
+    );
+
+    // Add edges to the cube
+    const edgesGeometry = new THREE.EdgesGeometry(geometry);
+    const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+    const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+    cube.add(edges);
+
+    this.scene.add(cube);
+    this.blockMeshes.push(cube);
+  }
+
+  private isValidPlacement(position: THREE.Vector3): boolean {
+    const chunkX = Math.floor(position.x / CHUNK_SIZE.WIDTH);
+    const chunkZ = Math.floor(position.z / CHUNK_SIZE.DEPTH);
+    const chunkKey = `${chunkX},${chunkZ}`;
+
+    const chunk = this.chunks.get(chunkKey);
+    if (!chunk) return true; // Allow placement in new chunks
+
+    const localX = Math.floor(position.x) % CHUNK_SIZE.WIDTH;
+    const localY = Math.floor(position.y);
+    const localZ = Math.floor(position.z) % CHUNK_SIZE.DEPTH;
+
+    return localX >= 0 && localX < CHUNK_SIZE.WIDTH &&
+           localY >= 0 && localY < CHUNK_SIZE.HEIGHT &&
+           localZ >= 0 && localZ < CHUNK_SIZE.DEPTH &&
+           chunk[localX][localZ][localY] === BlockType.AIR;
   }
 }

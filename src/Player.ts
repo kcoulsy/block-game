@@ -17,23 +17,25 @@ export class Player {
     this.camera.position.z += z;
   }
 
-  getTargetBlock(blockMeshes: THREE.Mesh[], mouse: THREE.Vector2): { 
-    target: { position: THREE.Vector3, normal: THREE.Vector3 } | null,
+  setRotation(rotation: THREE.Quaternion) {
+    this.camera.setRotationFromQuaternion(rotation);
+  }
+
+  getTargetBlock(blockMeshes: THREE.Mesh[]): { 
+    target: { position: THREE.Vector3, placementPosition: THREE.Vector3 } | null,
     debug: {
       cameraPosition: THREE.Vector3,
       rayDirection: THREE.Vector3,
-      intersections: number,
-      firstIntersection?: THREE.Intersection
+      intersections: number
     }
   } {
-    this.raycaster.setFromCamera(mouse, this.camera);
+    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
     const intersects = this.raycaster.intersectObjects(blockMeshes, false);
 
     const debug = {
       cameraPosition: this.camera.position.clone(),
       rayDirection: this.raycaster.ray.direction.clone(),
-      intersections: intersects.length,
-      firstIntersection: intersects[0]
+      intersections: intersects.length
     };
 
     if (intersects.length > 0) {
@@ -41,13 +43,11 @@ export class Player {
       const normal = intersects[0].face?.normal;
 
       if (normal) {
-        const blockPosition = new THREE.Vector3()
-          .copy(intersectionPoint)
-          .sub(normal.multiplyScalar(0.5))
-          .floor();
+        const blockPosition = new THREE.Vector3().copy(intersects[0].object.position);
+        const placementPosition = blockPosition.clone().add(normal);
 
         return {
-          target: { position: blockPosition, normal: normal },
+          target: { position: blockPosition, placementPosition: placementPosition },
           debug
         };
       }
