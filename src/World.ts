@@ -188,4 +188,25 @@ export class World {
       this.blockMeshes = this.blockMeshes.filter(mesh => mesh !== blockMesh);
     }
   }
+
+  getBlockAt(position: THREE.Vector3): BlockType {
+    const chunkX = Math.floor(position.x / CHUNK_SIZE.WIDTH);
+    const chunkZ = Math.floor(position.z / CHUNK_SIZE.DEPTH);
+    const chunkKey = `${chunkX},${chunkZ}`;
+
+    const chunk = this.chunks.get(chunkKey);
+    if (!chunk) return BlockType.AIR; // Treat non-existent chunks as air
+
+    const localX = Math.floor(position.x) % CHUNK_SIZE.WIDTH;
+    const localY = Math.floor(position.y);
+    const localZ = Math.floor(position.z) % CHUNK_SIZE.DEPTH;
+
+    if (localX >= 0 && localX < CHUNK_SIZE.WIDTH &&
+        localY >= 0 && localY < CHUNK_SIZE.HEIGHT &&
+        localZ >= 0 && localZ < CHUNK_SIZE.DEPTH) {
+      return chunk[localX][localZ][localY];
+    }
+
+    return BlockType.AIR;
+  }
 }

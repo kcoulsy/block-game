@@ -38,34 +38,30 @@ export class Controls {
   }
 
   update() {
-    const moveSpeed = 0.1;
     const direction = new THREE.Vector3();
 
     if (this.keys['KeyW']) direction.z -= 1;
     if (this.keys['KeyS']) direction.z += 1;
     if (this.keys['KeyA']) direction.x -= 1;
     if (this.keys['KeyD']) direction.x += 1;
-    if (this.keys['Space']) direction.y += 1;
-    if (this.keys['ShiftLeft']) direction.y -= 1;
 
-    direction.normalize().multiplyScalar(moveSpeed);
-
-    // Create a quaternion for the pitch rotation (around X-axis)
-    const pitchQuaternion = new THREE.Quaternion();
-    pitchQuaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.pitch);
+    direction.normalize();
 
     // Create a quaternion for the yaw rotation (around Y-axis)
     const yawQuaternion = new THREE.Quaternion();
     yawQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
 
-    // Combine the rotations
-    const combinedQuaternion = new THREE.Quaternion();
-    combinedQuaternion.multiplyQuaternions(yawQuaternion, pitchQuaternion);
-
-    // Apply the rotation to the direction vector
+    // Apply the yaw rotation to the direction vector
     direction.applyQuaternion(yawQuaternion);
 
-    this.player.move(direction.x, direction.y, direction.z);
+    // Move the player
+    this.player.move(direction.x, 0, direction.z);
+
+    // Set the player's rotation
+    const pitchQuaternion = new THREE.Quaternion();
+    pitchQuaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.pitch);
+    const combinedQuaternion = new THREE.Quaternion();
+    combinedQuaternion.multiplyQuaternions(yawQuaternion, pitchQuaternion);
     this.player.setRotation(combinedQuaternion);
   }
 }
