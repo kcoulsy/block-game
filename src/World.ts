@@ -155,4 +155,37 @@ export class World {
            localZ >= 0 && localZ < CHUNK_SIZE.DEPTH &&
            chunk[localX][localZ][localY] === BlockType.AIR;
   }
+
+  removeBlock(position: THREE.Vector3) {
+    const chunkX = Math.floor(position.x / CHUNK_SIZE.WIDTH);
+    const chunkZ = Math.floor(position.z / CHUNK_SIZE.DEPTH);
+    const chunkKey = `${chunkX},${chunkZ}`;
+
+    const chunk = this.chunks.get(chunkKey);
+    if (!chunk) return; // Block is not in any existing chunk
+
+    const localX = Math.floor(position.x) % CHUNK_SIZE.WIDTH;
+    const localY = Math.floor(position.y);
+    const localZ = Math.floor(position.z) % CHUNK_SIZE.DEPTH;
+
+    if (localX >= 0 && localX < CHUNK_SIZE.WIDTH &&
+        localY >= 0 && localY < CHUNK_SIZE.HEIGHT &&
+        localZ >= 0 && localZ < CHUNK_SIZE.DEPTH) {
+      chunk[localX][localZ][localY] = BlockType.AIR;
+      this.removeBlockMesh(position);
+    }
+  }
+
+  private removeBlockMesh(position: THREE.Vector3) {
+    const blockMesh = this.blockMeshes.find(mesh => 
+      mesh.position.x === position.x &&
+      mesh.position.y === position.y &&
+      mesh.position.z === position.z
+    );
+
+    if (blockMesh) {
+      this.scene.remove(blockMesh);
+      this.blockMeshes = this.blockMeshes.filter(mesh => mesh !== blockMesh);
+    }
+  }
 }

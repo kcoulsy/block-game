@@ -53,15 +53,21 @@ function onMouseMove(event: MouseEvent) {
 window.addEventListener('mousemove', onMouseMove, false);
 
 function onMouseClick(event: MouseEvent) {
-  if (event.button === 0) { // Left click
-    const { target: targetBlock } = player.getTargetBlock(world.blockMeshes);
-    if (targetBlock) {
+  const { target: targetBlock } = player.getTargetBlock(world.blockMeshes);
+  if (targetBlock) {
+    if (event.button === 0) { // Left click
       world.placeBlock(targetBlock.placementPosition, BlockType.DIRT);
+    } else if (event.button === 2) { // Right click
+      world.removeBlock(targetBlock.position);
     }
   }
 }
 
 window.addEventListener('click', onMouseClick, false);
+window.addEventListener('contextmenu', (e) => {
+  e.preventDefault(); // Prevent the default context menu
+  onMouseClick(e);
+}, false);
 
 function animate() {
   requestAnimationFrame(animate);
